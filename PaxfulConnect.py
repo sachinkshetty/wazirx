@@ -28,30 +28,33 @@ class PaxfulConnect:
         payload = self.createPayload(self.paxfulApiKey, self.paxfulApiSecret);
         url = "https://paxful.com/api/trade/list"
         resp = requests.post(url, data=payload, headers=self.createheaders())
-        print(resp.status_code)
-        print(resp.json())
+        print("paxful trade status : " + str(resp.status_code))
+        # print(resp.json())
         if 200 <= resp.status_code <= 202:
             if resp.json()['status'] == "success":
                 trades = resp.json()['data']['trades']
                 for trade in trades:
-                    if trade['crypto_currency_code'] == 'BTC':
+                    if trade['crypto_currency_code'] == 'BTC' and trade['offer_type'] == 'buy':
                         orderQuantity = float(trade['fiat_amount_requested']) / float(trade['fiat_price_per_crypto'])
                         orderQuantity = round(decimal.Decimal(orderQuantity), 5)
-                        print(orderQuantity)
+                        print("orderQuantity : " + str(orderQuantity))
                         print(self.tradeHashList)
                         print(trade['trade_hash'])
+                        tradeHash = trade['trade_hash']
                         if not self.tradeHashList.__contains__(trade['trade_hash']):
-                            resp_status = self.wazirxservice.place_order(orderQuantity)
-                            if 200 <= int(resp_status) <= 201:
-                                self.tradeHashList.append(trade['trade_hash'])
-                                print(self.tradeHashList)
-                                self.writeTradeIdToFile(trade['trade_hash'])
+                            resp_status = self.wazirxservice.place_order_from_connect(orderQuantity, tradeHash)
+                            print("resp_status : " + str(resp_status))
+                            if resp_status is not None:
+                                if 200 <= int(resp_status) <= 201:
+                                    self.tradeHashList.append(trade['trade_hash'])
+                                    self.writeTradeIdToFile(trade['trade_hash'])
+                                else:
+                                    print("response status code : " + str(resp_status))
             else:
                 print("not able to get the trades")
                 print(resp.json())
         else:
-            print("response status code"+str(resp.status_code))
-
+            print("response status code" + str(resp.status_code))
 
     def createPayload(self, apikey, apisecret):
         nonce = int(time.time())

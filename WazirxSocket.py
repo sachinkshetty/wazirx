@@ -3,13 +3,13 @@ import json
 import _thread
 import requests, hmac, hashlib
 from time import time,sleep
-from PriceUpdate import PriceUpdate
+from WazirxData import WazirxData
 
 accessKey = "6q1rCgRNbuMkBCxi-HPqVvu-QQBO7D8Td-LiX9eGn6STag"
 secretKey = "C5pGMWPUuExwb6PYRrjijG4XcgZrpEv6KjwzJDa1"
 auth_key = ""
 
-priceUpdate = PriceUpdate()
+priceUpdate = WazirxData()
 
 
 def getAccessToken(access_key, secret_key):
