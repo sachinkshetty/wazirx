@@ -17,7 +17,6 @@ class WazirxService:
         print("placing new order from connect: " + trade_hash)
         resp = self.connect.get_existing_order()
         print("existing order status : " + str(resp.status_code))
-        print("existing order : " + str(resp.json()))
         return self.place_order(resp, quantity)
 
     def place_order(self, resp, quantity):
@@ -38,7 +37,9 @@ class WazirxService:
                     resp_status_code = self.connect.cancel_existing_order(orderId[0])
                     print("cancelled resp status : " + str(resp_status_code))
                     if resp_status_code == 200 or resp_status_code == 201:
-                        savedOrderQuantity = self.wazirxData.getorderquantity()
+                        orderdetails = self.wazirxData.getorderdetails()
+                        savedOrderQuantity = orderdetails[0]
+                        tradeids = orderdetails[1]
                         updateOriginalQuantity = float(originalQuantity[0]) + float(savedOrderQuantity)
                         if float(executedQuantity[0]) > 0:
                             remainingOrderQuantity = updateOriginalQuantity - float(executedQuantity[0])
@@ -48,22 +49,36 @@ class WazirxService:
                             updatedOrderQuantity = updateOriginalQuantity + float(quantity)
                             print("updatedOrderQuantity : " + str(updatedOrderQuantity))
 
-                        orderResponse = self.connect.place_new_order(updatedOrderQuantity, updatedBtcPrice)
-                        print(str(orderResponse.status_code) + " : order status code")
-                        orderResponseStatusCode = orderResponse.status_code
-                        if 200 <= orderResponseStatusCode <= 201:
-                            self.wazirxData.clearorderquantity()
-                        else:
-                            updatedOrderQuantity = updatedOrderQuantity - quantity
-                            self.wazirxData.updateorderquantity(updatedOrderQuantity)
+                        return self.place_new_order(updatedBtcPrice, updatedOrderQuantity, tradeids)
 
                         return orderResponse.status_code
             else:
-                orderResponse = self.connect.place_new_order(quantity, updatedBtcPrice)
-                print(str(orderResponse.status_code) + " : order status code")
-                return orderResponse.status_code
+                return self.place_new_order_with_order_details(updatedBtcPrice)
         else:
             return resp.status_code
+
+    def place_new_order_with_order_details(self,updatedBtcPrice):
+        orderdetails = self.wazirxData.getorderdetails()
+        savedOrderQuantity = orderdetails[0]
+        print("savedOrderQuantity - "+str(savedOrderQuantity))
+        tradeids = orderdetails[1]
+        if savedOrderQuantity > 0:
+            return self.place_new_order(updatedBtcPrice, savedOrderQuantity, tradeids)
+        else:
+            print("no order quantity present")
+
+    def place_new_order(self,updatedBtcPrice, savedOrderQuantity, tradeids):
+        orderResponse = self.connect.place_new_order(savedOrderQuantity, updatedBtcPrice)
+        print(str(orderResponse.status_code) + " : order status code")
+        orderResponseStatusCode = orderResponse.status_code
+        if 200 <= orderResponseStatusCode <= 201:
+            print(orderResponse.json()['id'])
+            self.wazirxData.updateorderquantity(orderResponse.json()['id'], tradeids)
+        else:
+            print("not able to place order")
+        return orderResponse.status_code
+
+
 
     def place_order_from_updater(self, quantity):
         print("placing new order from updater: ")
@@ -71,5 +86,4 @@ class WazirxService:
         print("existing order status : " + str(resp.status_code))
         if 200 <= int(resp.status_code) <= 201:
             print("existing order : " + str(resp.json()))
-            if len(resp.json()) > 0:
-                return self.place_order(resp, quantity)
+            return self.place_order(resp, quantity)

@@ -11,7 +11,8 @@ class WazixOrderUpdater:
     def updateOrder(self):
         while True:
             self.service.place_order_from_updater(0)
-            time.sleep(2)
+            time.sleep(10)
+
 
 if __name__ == '__main__':
     orderUpdater = WazixOrderUpdater()

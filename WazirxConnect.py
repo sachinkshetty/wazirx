@@ -15,7 +15,7 @@ class WazirxConnect:
         self.wazirxApiKey = config.get('wazirx', 'wazirxApiKey')
         self.wazirxApiSecret = config.get('wazirx', 'wazirxApiSecret')
 
-    def cancel_existing_order(self, orderId):
+    def     cancel_existing_order(self, orderId):
         print("cancel_existing_order")
         apiUrl = "https://api.wazirx.com/sapi/v1/order"
 
@@ -30,7 +30,6 @@ class WazirxConnect:
         print(encodedDeleteOrderPayloadWithSignature)
 
         resp = requests.delete(apiUrl, data=encodedDeleteOrderPayloadWithSignature, headers=headers)
-        print(resp.json())
         return resp.status_code
 
     def get_existing_order(self):
@@ -66,8 +65,6 @@ class WazirxConnect:
         print(encodedOrderPayloadWithSignature)
 
         resp = requests.post(apiUrl, data=encodedOrderPayloadWithSignature, headers=headers)
-
-        print(resp)
         return resp
 
     def get_btc_market_price(self, crypto):
