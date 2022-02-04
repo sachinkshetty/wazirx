@@ -43,6 +43,9 @@ class WazirxService:
                         updateOriginalQuantity = float(originalQuantity[0]) + float(savedOrderQuantity)
                         if float(executedQuantity[0]) > 0:
                             remainingOrderQuantity = updateOriginalQuantity - float(executedQuantity[0])
+                            partialTradeId = str(orderId[0])+"-Partial"
+                            self.wazirxData.insertorderquantity(remainingOrderQuantity, partialTradeId)
+                            tradeids = tradeids + "," + partialTradeId
                             updatedOrderQuantity = float(remainingOrderQuantity) + float(quantity)
                             print("updatedOrderQuantity : " + str(updatedOrderQuantity))
                         else:
@@ -73,6 +76,7 @@ class WazirxService:
         orderResponseStatusCode = orderResponse.status_code
         if 200 <= orderResponseStatusCode <= 201:
             print(orderResponse.json()['id'])
+            print("tradeIds : " + str(tradeids))
             self.wazirxData.updateorderquantity(orderResponse.json()['id'], tradeids)
         else:
             print("not able to place order")

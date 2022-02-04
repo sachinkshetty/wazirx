@@ -26,13 +26,13 @@ class WazirxData:
         for row in self.cur.execute('SELECT price FROM crypto_price'):
             return row[0]
 
-    def updateorderquantity(self, quantity):
-        print(quantity)
-        # val = price
-        # self.cur.execute("REPLACE INTO crypto_price(price) VALUES (%s)", val)
-        sql = "REPLACE INTO crypto_order_quantity(order_quantity) VALUES (" + str(quantity) + ")"
-        self.cur.execute(sql)
-        self.con.commit()
+    # def updateorderquantity(self, quantity):
+    #     print(quantity)
+    #     # val = price
+    #     # self.cur.execute("REPLACE INTO crypto_price(price) VALUES (%s)", val)
+    #     sql = "REPLACE INTO crypto_order_quantity(order_quantity) VALUES (" + str(quantity) + ")"
+    #     self.cur.execute(sql)
+    #     self.con.commit()
 
     def clearorderquantity(self):
         sql = "DELETE FROM crypto_order_quantity"
@@ -53,15 +53,15 @@ class WazirxData:
         orderdetails.insert(1, tradeid)
         return orderdetails
 
-    def test(self):
-        self.cur.execute('SELECT * FROM crypto_order_quantity where orderId '
-                         'is Null')
-        print(self.cur.fetchall())
+    def getOrderToBePlaced(self):
+        for row in self.cur.execute('SELECT sum(order_quantity) FROM crypto_order_quantity where orderId '
+                                    'is Null'):
+            return row[0]
 
-    def test1(self):
-        self.cur.execute('SELECT * FROM crypto_order_quantity where orderId '
-                         'is not Null')
-        print(self.cur.fetchall())
+    def getOrderPlacedSucessfully(self):
+        str1 = "%Partial"
+        for row in self.cur.execute("SELECT sum(order_quantity) FROM crypto_order_quantity where orderId is not Null"):
+            return row[0]
 
     def insertorderquantity(self, quantity, tradeId):
         sql = "INSERT INTO crypto_order_quantity(tradeId, order_quantity,orderId) VALUES (?,?,?) "
@@ -75,14 +75,21 @@ class WazirxData:
             self.cur.execute(sql, (orderId, tradeid))
             self.con.commit()
 
+    def getall(self):
+        self.cur.execute('SELECT tradeId,orderId,order_quantity FROM crypto_order_quantity')
+        return self.cur.fetchall()
 
-# if __name__ == '__main__':
-#     orderUpdater = WazirxData()
-#     orderUpdater.insertorderquantity(1, "dsdsd")
-#     orderUpdater.insertorderquantity(1, "s12121")
-#     orderUpdater.insertorderquantity(1, "fdfffgf")
-#     order = orderUpdater.getorderdetails()
-#     orderUpdater.updateorderquantity("1111111", order[1])
-#     orderUpdater.test1()
-#     orderUpdater.test()
+    def getOrderPlacedSucessfully1(self):
+        for row in self.cur.execute("SELECT sum(order_quantity) FROM crypto_order_quantity where orderId is not Null and tradeId not like '%Partial'"):
+            return row[0]
 
+
+if __name__ == '__main__':
+    orderUpdater = WazirxData()
+    orderUpdater.insertorderquantity(1, "dsdsd")
+    #     orderUpdater.insertorderquantity(1, "s12121")
+    #     orderUpdater.insertorderquantity(1, "fdfffgf")
+    #     order = orderUpdater.getorderdetails()
+    #     orderUpdater.updateorderquantity("1111111", order[1])
+    #     orderUpdater.test1()
+    print(orderUpdater.getOrderToBePlaced())
