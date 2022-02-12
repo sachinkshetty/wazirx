@@ -15,7 +15,7 @@ class WazirxConnect:
         self.wazirxApiKey = config.get('wazirx', 'wazirxApiKey')
         self.wazirxApiSecret = config.get('wazirx', 'wazirxApiSecret')
 
-    def     cancel_existing_order(self, orderId):
+    def cancel_existing_order(self, orderId):
         print("cancel_existing_order")
         apiUrl = "https://api.wazirx.com/sapi/v1/order"
 
@@ -30,7 +30,8 @@ class WazirxConnect:
         print(encodedDeleteOrderPayloadWithSignature)
 
         resp = requests.delete(apiUrl, data=encodedDeleteOrderPayloadWithSignature, headers=headers)
-        return resp.status_code
+        print(resp.json())
+        return resp
 
     def get_existing_order(self):
         print("get_existing_order")

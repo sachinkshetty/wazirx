@@ -1,4 +1,6 @@
 import configparser
+import json
+import time
 
 from WazirxData import WazirxData
 from WazirxConnect import WazirxConnect
@@ -34,16 +36,16 @@ class WazirxService:
                     executedQuantity = [open_order['executedQty'] for open_order in open_orders]
                     orderId = [open_order['id'] for open_order in open_orders]
                     print(orderId[0])
-                    resp_status_code = self.connect.cancel_existing_order(orderId[0])
-                    print("cancelled resp status : " + str(resp_status_code))
-                    if resp_status_code == 200 or resp_status_code == 201:
+                    cancelled_order_status = self.cancel_order(orderId[0])
+                    print("cancelled resp status : " + str(cancelled_order_status))
+                    if cancelled_order_status:
                         orderdetails = self.wazirxData.getorderdetails()
                         savedOrderQuantity = orderdetails[0]
                         tradeids = orderdetails[1]
                         updateOriginalQuantity = float(originalQuantity[0]) + float(savedOrderQuantity)
                         if float(executedQuantity[0]) > 0:
                             remainingOrderQuantity = updateOriginalQuantity - float(executedQuantity[0])
-                            partialTradeId = str(orderId[0])+"-Partial"
+                            partialTradeId = str(orderId[0]) + "-Partial"
                             self.wazirxData.insertorderquantity(remainingOrderQuantity, partialTradeId)
                             tradeids = tradeids + "," + partialTradeId
                             updatedOrderQuantity = float(remainingOrderQuantity) + float(quantity)
@@ -53,24 +55,32 @@ class WazirxService:
                             print("updatedOrderQuantity : " + str(updatedOrderQuantity))
 
                         return self.place_new_order(updatedBtcPrice, updatedOrderQuantity, tradeids)
-
-                        return orderResponse.status_code
+                    else:
+                        print("order id -- " + str(orderId[0]))
+                        exit()
             else:
                 return self.place_new_order_with_order_details(updatedBtcPrice)
         else:
             return resp.status_code
 
-    def place_new_order_with_order_details(self,updatedBtcPrice):
+    def place_new_order_with_order_details(self, updatedBtcPrice):
         orderdetails = self.wazirxData.getorderdetails()
         savedOrderQuantity = orderdetails[0]
-        print("savedOrderQuantity - "+str(savedOrderQuantity))
+        print("savedOrderQuantity - " + str(savedOrderQuantity))
         tradeids = orderdetails[1]
         if savedOrderQuantity > 0:
             return self.place_new_order(updatedBtcPrice, savedOrderQuantity, tradeids)
         else:
             print("no order quantity present")
 
-    def place_new_order(self,updatedBtcPrice, savedOrderQuantity, tradeids):
+    def cancel_and_place_new_order(self, updatedBtcPrice, savedOrderQuantity, tradeids, orderId):
+        status = self.cancel_order(orderId)
+        if status:
+            return self.place_new_order(updatedBtcPrice,savedOrderQuantity,tradeids)
+        else:
+            exit()
+
+    def place_new_order(self, updatedBtcPrice, savedOrderQuantity, tradeids):
         orderResponse = self.connect.place_new_order(savedOrderQuantity, updatedBtcPrice)
         print(str(orderResponse.status_code) + " : order status code")
         orderResponseStatusCode = orderResponse.status_code
@@ -82,10 +92,26 @@ class WazirxService:
             print("not able to place order")
         return orderResponse.status_code
 
-
+    def cancel_order(self, orderId):
+        while True:
+            response = self.connect.cancel_existing_order(orderId)
+            print("cancelled order response status : " + str(response.status_code))
+            if response.status_code == 200:
+                cancelled_order = json.loads(response.text)
+                if "status" in cancelled_order:
+                    print(cancelled_order['status'])
+                    if cancelled_order['status'] != 'cancel':
+                        time.sleep(5)
+                    else:
+                        return True
+                else:
+                    return False
+            else:
+                return False
 
     def place_order_from_updater(self, quantity):
-        print("placing new order from updater: ")
+        print("\n")
+        print("----placing new order from updater: ")
         resp = self.connect.get_existing_order()
         print("existing order status : " + str(resp.status_code))
         if 200 <= int(resp.status_code) <= 201:

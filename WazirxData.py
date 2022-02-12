@@ -48,7 +48,10 @@ class WazirxData:
                                     'is Null'):
             orderquantity += float(row[0])
             tradeid += row[1] + ","
+            print("tradeids : " + str(tradeid))
         tradeid = tradeid.rstrip(",")
+        print("tradeidss : " + str(tradeid))
+        print("orderquantity : " + str(orderquantity))
         orderdetails.insert(0, orderquantity)
         orderdetails.insert(1, tradeid)
         return orderdetails

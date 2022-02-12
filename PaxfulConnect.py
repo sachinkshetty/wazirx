@@ -1,3 +1,4 @@
+import asyncio
 import configparser
 import hmac
 import time
@@ -20,14 +21,16 @@ class PaxfulConnect:
         config.read('application.properties')
         self.paxfulApiKey = config.get('wazirx', 'paxfulApiKey')
         self.paxfulApiSecret = config.get('wazirx', 'paxfulApiSecret')
+        self.paxfulChatMessage = config.get('wazirx', 'paxfulChatMessage')
 
-    def start(self):
+
+    async def start(self):
         while True:
             print("looping*********")
-            self.connect()
+            await self.connect()
             time.sleep(10)
 
-    def connect(self):
+    async def connect(self):
         payload = self.createPayload(self.paxfulApiKey, self.paxfulApiSecret);
         url = "https://paxful.com/api/trade/list"
         resp = requests.post(url, data=payload, headers=self.createheaders())
@@ -44,12 +47,16 @@ class PaxfulConnect:
                         print(self.tradeHashList)
                         print(trade['trade_hash'])
                         tradeHash = trade['trade_hash']
-                        if not self.tradeHashList.__contains__(trade['trade_hash']):
+                        if not self.tradeHashList.__contains__(tradeHash):
                             print("inserting order" + str(tradeHash))
                             # resp_status = self.wazirxservice.place_order_from_connect(orderQuantity, tradeHash)
                             self.wazirxData.insertorderquantity(orderQuantity, tradeHash)
                             self.tradeHashList.append(trade['trade_hash'])
                             self.writeTradeIdToFile(trade['trade_hash'])
+                            response = asyncio.create_task(self.post_chat_message(tradeHash))
+                            chatResponse = await response
+                            print(chatResponse)
+
                         else:
                             print("trade hash present in the hash file")
             else:
@@ -58,9 +65,25 @@ class PaxfulConnect:
         else:
             print("response status code" + str(resp.status_code))
 
+    async def post_chat_message(self, tradehash):
+        print(tradehash)
+        url = "https://paxful.com/api/trade-chat/post"
+        payload = self.createChatPayload(self.paxfulApiKey, self.paxfulApiSecret, tradehash)
+        resp = requests.post(url, data=payload, headers=self.createheaders())
+        print(resp.json())
+
     def createPayload(self, apikey, apisecret):
         nonce = int(time.time())
         payload = {"apikey": apikey, "nonce": nonce}
+        encodedPayload = urlencode(sorted(payload.items()))
+        return encodedPayload + "&apiseal=" + self.createapiseal(encodedPayload, apisecret)
+
+    def createChatPayload(self, apikey, apisecret, tradehash):
+        print(tradehash)
+        nonce = int(time.time())
+        message = self.paxfulChatMessage
+        print(message)
+        payload = {"apikey": apikey, "nonce": nonce, "message": message, "trade_hash": tradehash}
         encodedPayload = urlencode(sorted(payload.items()))
         return encodedPayload + "&apiseal=" + self.createapiseal(encodedPayload, apisecret)
 
@@ -84,4 +107,4 @@ class PaxfulConnect:
 
 if __name__ == '__main__':
     paxful = PaxfulConnect()
-    paxful.start()
+    asyncio.run(paxful.start())
